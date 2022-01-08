@@ -1,7 +1,7 @@
 # Predicting_Stock_Prices
 Analyze historical performance and predict stock prices
 
-# Introduction to the Project
+## Introduction to the Project
 For the final project in Udacity Data Science Course I decided to recommend and predict stock prices based on user selection. The Flask app that I have created allows the user to input a ticker of choice (official financial ticker, e.g. GOOG for google, AAPL for Apple and so on). Based on the user selection the app will:
 * plot historical prices
 * show analysts' recommendations and return over recent period
@@ -10,7 +10,7 @@ For the final project in Udacity Data Science Course I decided to recommend and 
   * predict the next 5 days (if enough data available) based on LSTM model
   * show most similar stocks / recommendations from the S&P 500 index based on similarity matrix where the input are stock fundamentals (price to book, ebidta margin etc.). It will also perform Funk SVD decomposition in case some of the fundamentals are missing)
 
-# Folder Structure
+## Folder Structure
 Folder structure is as follows:
 * app Folder: parent Folder
   * lib Folder: library containing additional python scripts that are used
@@ -24,10 +24,27 @@ Folder structure is as follows:
 
 Additionally app Folder contains the following files:
 * app.py: main python script for the Flask app
-* contentRecommRanges.txt: txt file that serves as input to contentBasedRecom.py. It is used to split fundamentals into different ranges which are then transformed into matrices of 1s and 0s depending on whether the value of a stock for a certain fundamental falls in a range or not. User can change these ranges and re-create a new matrix if desired
+* contentRecommRanges.txt: txt file that serves as input to contentBasedRecom.py. It is used to split fundamentals into different ranges which are then transformed into matrices of 1s and 0s depending on whether the value of a stock for a certain fundamental falls in a range or not. User can change these ranges and re-create a new matrix if desired. Example: **ebitdaMargins, 0, 1, 11**
+  * first input the name of the fundametanl. To see all availabel fundamentals, run yahoo_fin.Ticker('GOOG').info (where GOOG can be replaced with any ticker)
+  * the next 3 values represent lower bound, upper bound and number of brackets. Any value below lower bound is assigned to the lowest bracket and any value above upper bound is assigned to the highest bracket
 * my_df & my_df_extra: outputs of function createDf() from contentBasedRecom.py. As fundamentals are only updated quarterly, I ran the process once and save the underlying data to be used for any stock
 * requirements.txt: package requirements to run the Flask app
 
-# Running the App
+## Running the App
 To run the app, open cmd / conda Navigator, navigate into the app Folder and run command "flask app". You should get the following message:
+
 ![cmd_rn](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/cmd.png)
+
+Copy the http path + '/inputSymbol' to get to the app's homepage. In my case it would look like **http://127.0.0.1:5000/inputSymbol**
+
+### Initial View:
+THe homepage screen will look per below. Write the ticker of interest in the input field to get the basic view of the stock characteristics.
+
+![InputScreen](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/InputScreen.png)
+
+If you press **RECOMMEND** without ticking any of the tickboxes, this is the view you get:
+* Trend of the closing prices for the selected ticker over the most recent 250 trading days
+* Histogram of the closing prices for the selected ticker over the most recent 250 trading days
+* Main statistics, such as current price, return over a few periods of interest, target analyst price, upside (return based on target analyst price and current price) and the current analyst recommendation
+
+![DefaultView](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/DefaultView.png)
