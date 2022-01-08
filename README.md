@@ -38,7 +38,7 @@ To run the app, open cmd / conda Navigator, navigate into the app Folder and run
 Copy the http path + '/inputSymbol' to get to the app's homepage. In my case it would look like **http://127.0.0.1:5000/inputSymbol**
 
 ### Initial View:
-THe homepage screen will look per below. Write the ticker of interest in the input field to get the basic view of the stock characteristics.
+The homepage screen will look per below. Write the ticker of interest in the input field to get the basic view of the stock characteristics.
 
 ![InputScreen](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/InputScreen.png)
 
@@ -48,3 +48,17 @@ If you press **RECOMMEND** without ticking any of the tickboxes, this is the vie
 * Main statistics, such as current price, return over a few periods of interest, target analyst price, upside (return based on target analyst price and current price) and the current analyst recommendation
 
 ![DefaultView](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/DefaultView.png)
+
+All the data that is shown here is pulled using yahoo_fin package for Python. The idea behind the **Initial View** screen is to give a rough idea to the user how the stock price has been performing and what would be the right move (i.e. whether to buy, hold or sell the stock).
+
+Each of the tickboxes provides further information to the user on whether or not the stock is currently a buy, hold or sell as well as what might be other stocks of interest given the selected stock.
+
+### Display S&P 500 Index Performance
+User can additional tick any number of tickboxes. If **Display S&P 500 Index Performance** is ticked, the following information will be available:
+* Performance of the stocks within the same Sector for S&P 500 Stocks
+* Top 10 daily performing stocks for S&P 500 (i.e. highest daily returns)
+* Bottom 10 daily performing stocks for S&P 500 (i.e. worst daily loses)
+
+![ShowIndexInfo](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/ShowIndexInfo.png)
+
+These additional information can provide more clarity and give a more realistic view of how selected stock is performing. Is it performing well for its sector? How is it performing compared to the overall market? Of course this type of information is more relevant for larger companies as we are comparing it to the S&P 500 stocks. While this is something that could be improved for the app (i.e. show performance of other indices as well), it can still be useful for comparison purposes even when low or mid cap stock is selected.
