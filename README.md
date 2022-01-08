@@ -30,4 +30,4 @@ Additionally app Folder contains the following files:
 
 # Running the App
 To run the app, open cmd / conda Navigator, navigate into the app Folder and run command "flask app". You should get the following message:
-![cmd_rn](C:/Users/Andre/Desktop/Programming/Udacity/data_science/Predicting_Stock_Prices/images_git/cmd.png)
+![cmd_rn](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/cmd.png)
