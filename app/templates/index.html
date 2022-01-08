@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Stock Recommender</title>
+    <link rel="stylesheet" href="{{
+    url_for('static', filename='css/main.css')}}">
+  </head>
+  <body>
+    <img src="static/images/money.png">
+    <br>
+    <form action="recommend" method="post">
+      {% for message in get_flashed_messages()%}
+        <p> {{message}} </p>
+      {% endfor %}
+      <br>
+      <input type="text" name="symbol_input">
+      <br>
+      <div id="checkbox1" class="checkboxtext">
+          Display S&P500 Performance <input type="checkbox" name="mycheckbox", value=1>
+          Forecast the Next 5 Days <input type="checkbox" name="mycheckbox", value=2>
+          Show Recommendations <input type="checkbox" name="mycheckbox", value=3>
+      </div>
+      <br>
+      <input type="submit" value="RECOMMEND" id="recommend">
+    </form>
+
+    <div id='chart1' class='chart'></div>
+    <div id='chart2' class='chart'></div>
+    <div id='tableOverview'></div>
+    <div id='table1' class='table'></div>
+    <div id='table2' class='table'></div>
+    <div id='table3' class='table'></div>
+    <div id='graphForecast' class='chart'></div>
+    <div id='tableRecom' class='table'></div>
+    <div id='tablePredFund' class='table'></div>
+
+  </body>
+
+<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+
+  <script type='text/javascript'>
+    var graph1 = {{graph1JSON | safe}};
+    Plotly.plot('chart1',graph1,{});
+  </script>
+
+  <script type='text/javascript'>
+    var graph2 = {{graph2JSON | safe}};
+    Plotly.plot('chart2',graph2,{});
+  </script>
+
+  <script type='text/javascript'>
+    var tableOverview = {{tableOverviewJSON | safe}};
+    Plotly.plot('tableOverview',tableOverview,{});
+  </script>
+
+  <script type='text/javascript'>
+    var table1 = {{table1JSON | safe}};
+    Plotly.plot('table1',table1,{});
+  </script>
+
+  <script type='text/javascript'>
+    var table2 = {{table2JSON | safe}};
+    Plotly.plot('table2',table2,{});
+  </script>
+
+  <script type='text/javascript'>
+    var table3 = {{table3JSON | safe}};
+    Plotly.plot('table3',table3,{});
+  </script>
+
+  <script type='text/javascript'>
+    var graphForecast = {{graphForecastJSON | safe}};
+    Plotly.plot('graphForecast', graphForecast,{});
+  </script>
+
+  <script type='text/javascript'>
+    var tableRecom = {{tableRecommendJSON | safe}};
+    Plotly.plot('tableRecom',tableRecom,{});
+  </script>
+
+  <script type='text/javascript'>
+    var tablePredFund = {{tablePredFundJSON | safe}};
+    Plotly.plot('tablePredFund',tablePredFund,{});
+  </script>
+
+</html>
