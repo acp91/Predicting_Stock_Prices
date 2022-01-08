@@ -12,7 +12,7 @@ For the final project in Udacity Data Science Course I decided to recommend and 
 
 # Folder Structure
 Folder structure is as follows:
-* app: parent Folder
+* app Folder: parent Folder
   * lib Folder: library containing additional python scripts that are used
     * contentBasedRecom.py: used to create matrices for matrix based recommendation based on S&P 500 Index
     * finRecomm.py: imports some of the index data
@@ -27,3 +27,7 @@ Additionally app Folder contains the following files:
 * contentRecommRanges.txt: txt file that serves as input to contentBasedRecom.py. It is used to split fundamentals into different ranges which are then transformed into matrices of 1s and 0s depending on whether the value of a stock for a certain fundamental falls in a range or not. User can change these ranges and re-create a new matrix if desired
 * my_df & my_df_extra: outputs of function createDf() from contentBasedRecom.py. As fundamentals are only updated quarterly, I ran the process once and save the underlying data to be used for any stock
 * requirements.txt: package requirements to run the Flask app
+
+# Running the App
+To run the app, open cmd / conda Navigator, navigate into the app Folder and run command "flask app". You should get the following message:
+![cmd_rn](C:/Users/Andre/Desktop/Programming/Udacity/data_science/Predicting_Stock_Prices/images_git/cmd.png)
