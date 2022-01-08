@@ -18,16 +18,16 @@ Folder structure is as follows:
     * finRecomm.py: imports some of the index data
     * LSTM.py: imports relevant data for the selected stock, builds LSTM model and can be used to predict future prices
   * static Folder: contains subfolders for the Flask app
-    * css: css formating for the webpage
+    * css: css formatting for the webpage
     * images: images for the webpage
   * template Folder: contains index.html file which is used to render the webpage for Flask app
 
 Additionally app Folder contains the following files:
 * app.py: main python script for the Flask app
 * contentRecommRanges.txt: txt file that serves as input to contentBasedRecom.py. It is used to split fundamentals into different ranges which are then transformed into matrices of 1s and 0s depending on whether the value of a stock for a certain fundamental falls in a range or not. User can change these ranges and re-create a new matrix if desired. Example: **ebitdaMargins, 0, 1, 11**
-  * first input the name of the fundametanl. To see all availabel fundamentals, run yahoo_fin.Ticker('GOOG').info (where GOOG can be replaced with any ticker)
+  * first input the name of the fundamental. To see all available fundamentals, run yahoo_fin.Ticker('GOOG').info (where GOOG can be replaced with any ticker)
   * the next 3 values represent lower bound, upper bound and number of brackets. Any value below lower bound is assigned to the lowest bracket and any value above upper bound is assigned to the highest bracket
-* my_df & my_df_extra: outputs of function createDf() from contentBasedRecom.py. As fundamentals are only updated quarterly, I ran the process once and save the underlying data to be used for any stock
+* my_df & my_df_extra: outputs of function **createDf()** from **contentBasedRecom.py**. As fundamentals are only updated quarterly, I ran the process once and save the underlying data to be used for any stock
 * requirements.txt: package requirements to run the Flask app
 
 ## Running the App
@@ -54,6 +54,8 @@ All the data that is shown here is pulled using yahoo_fin package for Python. Th
 Each of the tickboxes provides further information to the user on whether or not the stock is currently a buy, hold or sell as well as what might be other stocks of interest given the selected stock.
 
 ### Display S&P 500 Index Performance
+*This selection will the delay response by ~30 seconds as it needs to download data for the entire S&P 500 index.*
+
 User can additional tick any number of tickboxes. If **Display S&P 500 Index Performance** is ticked, the following information will be available:
 * Performance of the stocks within the same Sector for S&P 500 Stocks
 * Top 10 daily performing stocks for S&P 500 (i.e. highest daily returns)
@@ -62,3 +64,44 @@ User can additional tick any number of tickboxes. If **Display S&P 500 Index Per
 ![ShowIndexInfo](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/ShowIndexInfo.png)
 
 These additional information can provide more clarity and give a more realistic view of how selected stock is performing. Is it performing well for its sector? How is it performing compared to the overall market? Of course this type of information is more relevant for larger companies as we are comparing it to the S&P 500 stocks. While this is something that could be improved for the app (i.e. show performance of other indices as well), it can still be useful for comparison purposes even when low or mid cap stock is selected.
+
+### Forecast Prices
+*This selection will delay response by up to 2 minutes as it needs to train 5 LSTM models (1 for each forecast range up to 5 days).*
+
+If **Forecast the Next 5 Days** is ticked, the following information will be available:
+* Graph showing predications for the next 5 days based on LSTM model
+* If not enough data is available, graph will display less data and inform the user for which days forecast was not possible
+
+![Predictions](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/Predictions.png)
+
+Predications are based on LSTM model. By default LSTM model is using:
+* Latest 20 prices to learn
+* Uses Adam optimizer
+* Validation sample size of 10%
+* Test sample size of 20%
+* Dropout rate of 10%
+* Uses 3 hidden layers of sizes 50, 40 and 30
+* Learn rate of 0.5%
+
+All these parameters and more can be adjusted in app.py or LSTM.py python files.
+
+### Show Recommendations
+*This selection will delay response by ~15 seconds as it perform various matrix multiplications and retrieve fundamentals for the selected stock.*
+
+If **Show Recommendations** is ticked, the following information will be available:
+* Table showing the top 20 most similar companies based on fundamentals
+* Table showing actual fundamental values and predicted fundamental values based on Funk SVD decomposition
+
+![Recommendations](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/Recommendations.png)
+
+Top 20 most similar companies are selected in the following way:
+* First I defined the relevant fundamentals in **contentRecommRanges.txt** file. As mentioned above, a user can change this file (e.g. add new fundamentals, change ranges etc.)
+* Take all stocks for S&P 500 index and retrieve all the relevant fundamentals' values for them
+* Produce associated matrices my_df and my_df_extra with **createDf()** from **contentBasedRecom.py** python file and save them in the folder with the same names
+  * my_df matrix contains information of 1s and 0s for when fundamentals of two compains fall in the same bracket
+  * my_df_extra holds information of actual fundamental values and is later used to display the data in the app
+* In case selected ticker is part of S&P 500 index, no changes needed fore my_df and my_df_extra matrices
+* In case selected ticker is not part of S&P 500 index, append this ticker to both matrices
+* Multiply the row for the selected ticker with every other ticker in the matrix and sum. Given we populate matrix as 1 for where fundamentals fall in the same bracket, the higher the sum means the more similar tow companies are
+
+Funk SVD is based on the same my_df_extra matrix that holds actual fundamental values for all the stocks. As we know Funk SVD works on missing values so in case some of the fundamentals are missing for the company, we can see what the predicted value should be (based on the stocks in S&P 500 index).
