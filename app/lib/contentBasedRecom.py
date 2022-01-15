@@ -184,9 +184,10 @@ def getRecommendations(df, df_extra, ticker, attr_list):
     cols = new_df.columns.tolist()
     cols = cols[:2] + cols[-1:] + cols[2:-1]
     new_df = new_df[cols]    
+    new_df.sort_values(by=['Similarity'], ascending=False, inplace=True)
     
     # drop row with the actual symbol
-    new_df = new_df.drop(new_df[new_df['Symbol']==ticker].index[0])
+    # new_df = new_df.drop(new_df[new_df['Symbol']==ticker].index[0])
     
     return new_df
 

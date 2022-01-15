@@ -28,10 +28,10 @@ import re
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
 from plotly.subplots import make_subplots
+from sklearn.preprocessing import MinMaxScaler
 
-from lib.finRecomm import HiddenPrints, load_index_data, recommend, plot_graphs, top_bottom
+from lib.finRecomm import load_index_data
 from lib.contentBasedRecom import createNames, colsForMatrix, returnColumn, createDf, getRecommendations, FunkSVD
-import lib.LSTM
 from lib.LSTM import LstmModel
 
 # create a Flask for the app
@@ -93,6 +93,8 @@ def recommend():
     # high level table for stock perfroamnce
     symbol_dict = {}
     symbol_dict['Current Price'] = symbol_info['currentPrice']
+    symbol_dict['Average'] =  "{:.2f}".format(np.mean(symbol_history.Close))
+    symbol_dict['Std Dev'] =  "{:.2f}".format(np.std(symbol_history.Close))
     symbol_dict['Return Over 10 Days'] = "{:.2f}%".format(((symbol_info['currentPrice'] - symbol_history.Close[-10]) / symbol_history.Close[-10])*100)
     symbol_dict['Return Over 20 Days'] = "{:.2f}%".format(((symbol_info['currentPrice'] - symbol_history.Close[-20]) / symbol_history.Close[-20])*100)
     symbol_dict['YTD Return'] = "{:.2f}%".format(((symbol_info['currentPrice'] - symbol_history.Close.loc[previous_year_end]) / symbol_history.Close.loc[previous_year_end])*100)
@@ -113,12 +115,12 @@ def recommend():
     symbol_df = pd.DataFrame.from_dict(symbol_dict, orient='index').transpose()
 
     fig = go.Figure(data=[go.Table(
-        columnwidth=[3, 3, 3, 3, 3],
+        columnwidth=[3, 3, 3, 3, 3, 3, 3, 3, 6],
         header=dict(values=list(symbol_df.columns),
                     fill_color='paleturquoise',
                     align='center'),
-        cells=dict(values=[symbol_dict['Current Price'], symbol_dict['Return Over 10 Days'], symbol_dict['Return Over 20 Days'], symbol_dict['YTD Return'],
-                    symbol_dict['Analyst Median Target Price'], symbol_dict['Upside'], symbol_dict['Analyst Recommendation']],
+        cells=dict(values=[symbol_dict['Current Price'], symbol_dict['Average'], symbol_dict['Std Dev'], symbol_dict['Return Over 10 Days'], symbol_dict['Return Over 20 Days'],
+                    symbol_dict['YTD Return'], symbol_dict['Analyst Median Target Price'], symbol_dict['Upside'], symbol_dict['Analyst Recommendation']],
                     fill_color='lavender',
                     align='center'))])
 
@@ -133,16 +135,15 @@ def recommend():
     tableRecommendJSON = ""
     tablePredFundJSON = ""
     graphForecastJSON = ""
+    graphOOSJSON = ""
+    tableEuclidianJSON = ""
 
     # check if display index performance checkbox was ticked
     if '1' in check_box:
 
         # get sp_500 data
-        data_sp500, data_dow, data_ftse100, data_ftse250, data_nasdaq, data_nifty51 = load_index_data()
-        # all sp500
-        data_sp500_all = data_sp500
+        data_sp500, data_dow, data_ftse100, data_ftse250, data_nasdaq = load_index_data()
         # filter only for constituents in the same symbol_sector
-        #data_sp500 = data_sp500[data_sp500['Sector'] == symbol_sector]
         data_sp500 = data_sp500[['Symbol', 'Security', 'Sector', 'GICS Sub-Industry']]
         # renma some sectors to align with yf.info['sector'] values
         if symbol_sector == 'Technology':
@@ -169,6 +170,7 @@ def recommend():
         sp500_df_top = sp500_df.head(10)
         sp500_df_bottom = sp500_df.tail(10)
         sp500_df = sp500_df[sp500_df['Sector'] == symbol_sector]
+
         # table of stocks in the same sector
         fig1 = go.Figure(data=[go.Table(
             columnwidth=[3, 5, 3, 8, 3, 3, 5],
@@ -212,59 +214,82 @@ def recommend():
         table2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
         table3JSON = json.dumps(fig3, cls=plotly.utils.PlotlyJSONEncoder)
 
-    # check if Forecast next 5 days is selected
+    # check if Forecast next 30 days is selected
     if '2' in check_box:
-        # get last observation for the ticker data
-        n_steps = 20
-        last_price =np.array(symbol_history['Close'][-n_steps:])
-        #last_price_date = last_price.index.strftime('%d-%m-%y').tolist()
-        # save predictions to predictions list
-        predictions = [symbol_info['currentPrice']]
-        #predictions_dates = [str(symbol_history.index[-1].strftime("%Y-%m-%d"))]
-        predictions_dates = [str(symbol_history.index[-1].strftime("%Y-%m-%d"))]
-        graph_name_string = ''
 
-        # predict for the next 5 days:
-        for x in range(1,6):
-            lstm = LstmModel()
-            lstm.get_input_data(symbol, offset=x)
+        # build the model
+        n_steps = 80
+        lstm = LstmModel()
+        lstm.get_input_data(symbol)
+
+        # create figure for plots
+        fig = go.Figure()
+
+        # check if there's enough data tgo train the model
+        enough_data = ''
+        try:
             lstm.normalize_data()
-            # check if enough data for train_test_split
-            try:
-                lstm.train_test_split(val_size = 0.1, test_size = 0.2, n_steps=n_steps)
-            except:
-                if graph_name_string == '':
-                    graph_name_string = 'Only ' + str(lstm.df.shape[0]) + ' days available, cannot forecast for days:'
-                graph_name_string += ' ' + str(x)
-                continue
-            # continue wiht bulding the model
-            lstm.lstm_model()
-            lstm.fit_model(epochs=30, batch_size=64)
+            lstm.train_test_split(val_size = 0.4, test_size = 0.2, n_steps=n_steps)
+            lstm.lstm_model(lr = 0.0005, optimizer = 'adam', dropout=0.15, l1_size=40, l2_size=40, l3_size=40)
+            lstm.fit_model(epochs=40, batch_size=64, verbose=1)
 
-            last_price_new = lstm.scaler.fit_transform(last_price.reshape(-1,1))
-            pred = lstm.lstm.predict(last_price_new)[0]
-            pred = lstm.scaler.inverse_transform(pred.reshape(-1,1))
-            predictions.append(pred[0][0])
-            predictions_dates.append(str(x))
-            #predictions_dates.append(str((date.today()+BDay(x)).strftime("%Y-%m-%d")))
+            # graph for out-of-samplem forecast for 1 day ahead
+            plot_df = pd.DataFrame()
+            plot_df['True Value'] = lstm.scaler.inverse_transform(lstm.y_test).reshape(-1)
+            plot_df['LSTM Value'] = lstm.test_predict.reshape(-1)
+            plot_df.set_index([lstm.df_original.iloc[-lstm.y_test.shape[0]:][:].reset_index()['Date']], inplace=True)
 
-        print(predictions, predictions_dates)
+            fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['True Value'], name='True Value',
+                             line=dict(color='blue', width=2)))
+            fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['LSTM Value'], name = 'Predicted',
+                                     line=dict(color='orange', width=2, dash='dot')))
 
-        # graph1
-        fig = go.Figure(data=[go.Scatter(
-            x = predictions_dates,
-            y = predictions,
-            mode = 'lines',)
-        ])
+        except:
+            enough_data += 'Not enough data to train the model ... '
 
-        fig.update_layout(title_text='LSTM Prediction for the Next 5 Days for ' + str(symbol) + '\n'
-            + graph_name_string)
+        fig.update_layout(title_text= enough_data + 'LSTM Out-of-sample Prediction for ' + str(symbol))
+
+        graphOOSJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+        # create figure for plots
+        fig = go.Figure()
+
+        try:
+            # predict the next 30 days
+            predictions = [symbol_info['currentPrice']]
+            predictions_dates = [date.today().strftime("%Y-%m-%d")]
+            X_for_pred = lstm.X_test[-1]
+            for x in range(1, 30):
+                new_pred = lstm.lstm.predict(X_for_pred.reshape(-1, n_steps, 1))
+                new_price = lstm.scaler.inverse_transform(new_pred)[0][0]
+                predictions.append(new_price)
+                predictions_dates.append((date.today()+BDay(x)).strftime("%Y-%m-%d"))
+                X_for_pred = np.vstack([X_for_pred, new_pred])
+                X_for_pred = X_for_pred[1:]
+
+            # graph for predicted 5 days ahead
+            fig = go.Figure(data=[go.Scatter(
+                x = predictions_dates,
+                y = predictions,
+                mode = 'lines',)
+            ])
+
+        except:
+            enough_data += 'Not enough data to train the model ... '
+
+        fig.update_layout(title_text=enough_data + 'LSTM Prediction for the Next 30 Days for ' + str(symbol))
 
         graphForecastJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
     # check if recommendations where ticked
     if '3' in check_box:
 
+        # get sp_500 data
+        data_sp500, data_dow, data_ftse100, data_ftse250, data_nasdaq = load_index_data()
+        # filter only for constituents in the same symbol_sector
+        data_sp500 = data_sp500[['Symbol', 'Sector']]
+
+        # RECOMMENDATIONS BASED ON SIMILARITY / MATRIX MULTIPLICATION
         attributes = open("contentRecommRanges.txt", "r")
         attr_list = attributes.read().splitlines()
 
@@ -282,45 +307,56 @@ def recommend():
 
         df_recommend.columns = new_cols
 
-        df_recommend = df_recommend.head(20)
+        df_recommend = df_recommend.head(21)
         df_recommend = df_recommend.round(2)
+
+        # merge with sp500 data to get Sector info
+        df_recommend = data_sp500.merge(df_recommend, left_on = 'Symbol', right_on='Symbol')
+        df_recommend.sort_values(by=['Similarity'], ascending=False, inplace=True)
 
         # table of stocks in the same sector
         fig = go.Figure(data=[go.Table(
-            columnwidth=[6, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+            columnwidth=[4, 6, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
             header=dict(values=list(df_recommend.columns),
                         fill_color='paleturquoise',
                         align='center'),
-            cells=dict(values=[df_recommend['Security'], df_recommend['Symbol'], df_recommend['Similarity'], df_recommend['ebitda Margins'], df_recommend['profit Margins'], df_recommend['gross Margins'], df_recommend['revenue Growth'],
-                               df_recommend['operating Margins'], df_recommend['earnings Growth'], df_recommend['return On Assets'], df_recommend['debt To Equity'], df_recommend['return On Equity'], df_recommend['enterprise To Ebitda'],
-                               df_recommend['price To Book'], df_recommend['price To Sales Trailing12 Months'], df_recommend['forward P E'], df_recommend['trailing P E']],
+            cells=dict(values=[df_recommend['Symbol'], df_recommend['Sector'],df_recommend['Security'], df_recommend['Similarity'], df_recommend['ebitda Margins'],
+                            df_recommend['profit Margins'], df_recommend['gross Margins'], df_recommend['revenue Growth'], df_recommend['operating Margins'],
+                            df_recommend['earnings Growth'], df_recommend['return On Assets'], df_recommend['debt To Equity'], df_recommend['return On Equity'],
+                            df_recommend['enterprise To Ebitda'], df_recommend['price To Book'], df_recommend['price To Sales Trailing12 Months'], df_recommend['forward P E'], df_recommend['trailing P E']],
                         fill_color='lavender',
                         align='center'))])
 
-        fig.update_layout(title_text='Most Similar Companies Based on Fundamentals for ' + str(symbol))
+        fig.update_layout(title_text='Content Based Recommendations Based on Matrix Multiplication for ' + str(symbol))
 
         tableRecommendJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-        # predict Fundamentals
+        # funk SVD prediction in case of missing fundamentals
+        # create a copy of my_df_extra_pred to be used for funk SVD
         my_df_extra_pred = my_df_extra.copy()
         my_df_extra_pred.drop(['Security'], axis=1, inplace=True)
         my_df_extra_pred.set_index('Symbol', inplace=True)
 
-        # create dict of relevant values for ticker
-        pref_stock_dict = {}
-        input_list = []
-
-        for i, x in enumerate(attr_list):
-            input_list.append(attr_list[i].split(',')[0])
-
-        for key in input_list:
-            pref_stock_dict[key] = np.nan
-
-        for key, value in symbol_info.items():
-            if key in input_list:
-                pref_stock_dict[key] = value
-
+        # create dataframe for the symbol in case it's not part of sp500 index and append it to the existing df
         if symbol not in my_df_extra.Symbol.tolist():
+
+            # create dict of relevant values for ticker
+            pref_stock_dict = {}
+            input_list = []
+
+            # create input list which will be list of fundamentals and brackets
+            for i, x in enumerate(attr_list):
+                input_list.append(attr_list[i].split(',')[0])
+
+            # pre-populate the dictionary with nan where missing
+            for key in input_list:
+                pref_stock_dict[key] = np.nan
+
+            # populate wtih actual fundamental values where available
+            for key, value in symbol_info.items():
+                if key in input_list:
+                    pref_stock_dict[key] = value
+
             symbol_fundametals_df = pd.DataFrame.from_dict(pref_stock_dict, orient='index').transpose()
             symbol_fundametals_df.columns = new_cols[3:]
             # append this df to existing one to be used in SVD
@@ -330,15 +366,33 @@ def recommend():
             new_index_list.append(symbol)
             my_df_extra_pred.index = new_index_list
 
-        symbols_mat, features_mat = FunkSVD(np.matrix(my_df_extra_pred), learning_rate=0.00002, iters=120, latent_features=my_df_extra_pred.shape[1])
+            # normalized the set and keep track of mean and Std
+            mean_funkSVD = np.array(np.mean(my_df_extra_pred, axis=0))
+            std_funkSVD = np.array(np.std(my_df_extra_pred, axis=0))
+            my_df_extra_normalized = (my_df_extra_pred - mean_funkSVD) / std_funkSVD
 
-        if symbol not in my_df_extra.Symbol.tolist():
-            predicted_fundametals = symbol_fundametals_df
-            SVD_predicted_df = pd.DataFrame(np.dot(symbols_mat[-1], features_mat)).transpose()
+            # perform funk SVD decomposition
+            symbols_mat, features_mat = FunkSVD(np.matrix(my_df_extra_normalized), learning_rate=0.005, iters=300, latent_features=my_df_extra_pred.shape[1])
+
+            # predict and re-scale
+            predicted_fundametals = symbol_fundametals_df.copy()
+            SVD_predicted_df = pd.DataFrame(np.dot(symbols_mat[-1], features_mat) * std_funkSVD + mean_funkSVD).transpose()
+
+        # if symbol is part of S&P500 index, then import pre-calculated funk SVD data and predict from there
         else:
+            # import pre-learned funk-svd
+            predicted_df = pd.read_csv('predicted_df', sep='\t')
+            predicted_df = predicted_df.set_index(['Symbol'])
+            # import mean and std to re-scale (funk SVD runs on normalized data)
+            mean_std_funkSVD = pd.read_csv('mean_std_funkSVD', sep='\t')
+            mean_std_funkSVD = mean_std_funkSVD.set_index(['Statistic'])
+            mean_funkSVD = np.array(mean_std_funkSVD.iloc[1])
+            std_funkSVD = np.array(mean_std_funkSVD.iloc[0])
+            # scale the prediction
             predicted_fundametals = pd.DataFrame(my_df_extra_pred.loc[symbol]).transpose()
             predicted_fundametals.columns = new_cols[3:]
-            SVD_predicted_df = pd.DataFrame(np.dot(symbols_mat[my_df_extra[my_df_extra['Symbol']==symbol].index[0]], features_mat)).transpose()
+            # re-scale based on mean and std
+            SVD_predicted_df = pd.DataFrame(predicted_df.loc[symbol] * std_funkSVD + mean_funkSVD).transpose()
 
         SVD_predicted_df.columns = new_cols[3:]
         predicted_fundametals = predicted_fundametals.append(SVD_predicted_df)
@@ -363,4 +417,4 @@ def recommend():
 
     return render_template('index.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, tableOverviewJSON=tableOverviewJSON,
         tableRecommendJSON=tableRecommendJSON, tablePredFundJSON=tablePredFundJSON, graphForecastJSON=graphForecastJSON,
-        table1JSON=table1JSON, table2JSON=table2JSON, table3JSON=table3JSON)
+        graphOOSJSON=graphOOSJSON, table1JSON=table1JSON, table2JSON=table2JSON, table3JSON=table3JSON)

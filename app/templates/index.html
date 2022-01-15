@@ -17,8 +17,8 @@
       <input type="text" name="symbol_input">
       <br>
       <div id="checkbox1" class="checkboxtext">
-          Display S&P500 Performance <input type="checkbox" name="mycheckbox", value=1>
-          Forecast the Next 5 Days <input type="checkbox" name="mycheckbox", value=2>
+          Display S&P500 Index Performance <input type="checkbox" name="mycheckbox", value=1>
+          Forecast the Next 30 Days <input type="checkbox" name="mycheckbox", value=2>
           Show Recommendations <input type="checkbox" name="mycheckbox", value=3>
       </div>
       <br>
@@ -31,6 +31,7 @@
     <div id='table1' class='table'></div>
     <div id='table2' class='table'></div>
     <div id='table3' class='table'></div>
+    <div id='graphOOS' class='chart'></div>
     <div id='graphForecast' class='chart'></div>
     <div id='tableRecom' class='table'></div>
     <div id='tablePredFund' class='table'></div>
@@ -72,6 +73,11 @@
   <script type='text/javascript'>
     var graphForecast = {{graphForecastJSON | safe}};
     Plotly.plot('graphForecast', graphForecast,{});
+  </script>
+
+  <script type='text/javascript'>
+    var graphOOS = {{graphOOSJSON  | safe}};
+    Plotly.plot('graphOOS', graphOOS,{});
   </script>
 
   <script type='text/javascript'>
