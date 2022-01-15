@@ -38,6 +38,10 @@ Top 20 most similar companies are selected in the following way:
 
 Funk SVD is based on the same my_df_extra matrix that holds actual fundamental values for all the stocks. As we know Funk SVD works on missing values so in case some of the fundamentals are missing for the company, we can see what the predicted value should be.
 
+I ran a few different scenarios to find funk SVD model that has the lowest error. Learning rate of 0.005 was the most stable while the best result / smallest error was at 300 iterations:
+
+![cmd_rn](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/funk_SVD_optimize.png)
+
 ### Prediction
 Out of various different models that can be used to predict time series data (e.g. simple linear regression, AR, ARIMA) I've decided to rather use a deep-learning based model called *Long-short-term-memory* or *LSTM* for short. The reason for this model is arbitrary and someone else could also use a different one. I've relied on some existing work as referenced in the *Reference* section in the end.
 
