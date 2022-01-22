@@ -47,7 +47,7 @@ Out of various different models that can be used to predict time series data (e.
 
 I've relied on some existing work as referenced in the *Reference* section in the end.
 
-I run 5 different LSTM models, one fort each time period (1 day lag up to 5 day lag). By default LSTM models are using:
+I ran an LSTM model predicting 1-day ahead price. After trying out different options these are the parameters my model is using:
 * Latest 15 prices to learn. I did not use a longer sequence for learning as it would limit the number of stocks for which I could make all 5 predictions
 * Uses Adam optimizer. SGD did not converge in most of the examples that I run
 * Validation sample size of 8%
@@ -56,7 +56,7 @@ I run 5 different LSTM models, one fort each time period (1 day lag up to 5 day 
 * Uses 3 hidden layers of sizes 30
 * Learn rate of 0.1%
 
-I've used mean squared error for model selection as well as keeping in mind that complicated models that would take a long time to run would ruin some of the user experience. With the model I have specified above it takes around 1 minute to train and display the data (but it will depend on users GPU as the code is relying on Tensor Flow library). Mean squared error is a good estimator in this case as I am not so interested in the magnitude of the predictions, just that the direction / trend is right. If mean squared error is smaller, it means that the prediction, on average, was in the same direction as the actual price move (i.e. increase / decrease in the stock price).
+I've used mean squared error for model selection as well as keeping in mind that complicated models that would take a long time to run would ruin some of the user experience. With the model I have specified above it takes around 1 minute to train and display the data (but it will depend on users GPU as the code is relying on Tensor Flow library). Mean squared error is a good estimator in this case as I am not so interested in the magnitude of the predictions, just that the direction / trend is right. If mean squared error is smaller, it means that the prediction, on average, was in the same direction as the actual price move (i.e. increase / decrease in the stock price). I ran the tests for an IBM stock as it has a long history of prices.
 
 ![LSTM_optimize](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/LSTM_optimize.png)
 
