@@ -40,21 +40,25 @@ Funk SVD is based on the same my_df_extra matrix that holds actual fundamental v
 
 I ran a few different scenarios to find funk SVD model that has the lowest error. Learning rate of 0.005 was the most stable while the best result / smallest error was at 300 iterations:
 
-![cmd_rn](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/funk_SVD_optimize.png)
+![funk_SVD_optimize](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/funk_SVD_optimize.png)
 
 ### Prediction
-Out of various different models that can be used to predict time series data (e.g. simple linear regression, AR, ARIMA) I've decided to rather use a deep-learning based model called *Long-short-term-memory* or *LSTM* for short. The reason for this model is arbitrary and someone else could also use a different one. I've relied on some existing work as referenced in the *Reference* section in the end.
+Out of various different models that can be used to predict time series data (e.g. simple linear regression, AR, ARIMA) I've decided to rather use a deep-learning based model called *Long-short-term-memory* or *LSTM* for short. The reason for it is that LSTM model is designed to learn what information / past prices are worth keeping for predicting future prices and what information is not relevant. As discussed [here](https://datascience.stackexchange.com/questions/12721/time-series-prediction-using-arima-vs-lstm#:~:text=LSTM%20works%20better%20if%20we,not%20require%20setting%20such%20parameters) LSTM is a better choice than e.g. alternative ARIMA time series models for when we are dealing with a large amount of data (which gives deep leaning model enough information to learn on).
+
+I've relied on some existing work as referenced in the *Reference* section in the end.
 
 I run 5 different LSTM models, one fort each time period (1 day lag up to 5 day lag). By default LSTM models are using:
 * Latest 15 prices to learn. I did not use a longer sequence for learning as it would limit the number of stocks for which I could make all 5 predictions
 * Uses Adam optimizer. SGD did not converge in most of the examples that I run
-* Validation sample size of 10%
-* Test sample size of 20%
-* Dropout rate of 10%
-* Uses 3 hidden layers of sizes 50, 40 and 30
-* Learn rate of 0.5%
+* Validation sample size of 8%
+* Test sample size of 12%
+* Dropout rate of 5%
+* Uses 3 hidden layers of sizes 30
+* Learn rate of 0.1%
 
-I've used mean squared error for model selection as well as keeping in mind that complicated models that would take a long time to run would ruin some of the user experience. With the model I have specified above it takes around 2 minutes to train all 5 models and display the data. Mean squared error is a good estimator in this case as I am not so interested in the magnitude of the predictions, just that the direction is right. If mean squared error is smaller, it means that the prediction, on average, was in the same direction as the actual price move (i.e. increase / decrease in the stock price).
+I've used mean squared error for model selection as well as keeping in mind that complicated models that would take a long time to run would ruin some of the user experience. With the model I have specified above it takes around 1 minute to train and display the data (but it will depend on users GPU as the code is relying on Tensor Flow library). Mean squared error is a good estimator in this case as I am not so interested in the magnitude of the predictions, just that the direction / trend is right. If mean squared error is smaller, it means that the prediction, on average, was in the same direction as the actual price move (i.e. increase / decrease in the stock price).
+
+![LSTM_optimize](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/LSTM_optimize.png)
 
 All these parameters and more can be adjusted in app.py or LSTM.py python files.
 

@@ -230,8 +230,8 @@ def recommend():
         try:
             lstm.normalize_data()
             lstm.train_test_split(val_size = 0.4, test_size = 0.2, n_steps=n_steps)
-            lstm.lstm_model(lr = 0.0005, optimizer = 'adam', dropout=0.15, l1_size=40, l2_size=40, l3_size=40)
-            lstm.fit_model(epochs=40, batch_size=64, verbose=1)
+            lstm.lstm_model(lr = 0.001, optimizer = 'adam', dropout=0.05, l1_size=40, l2_size=40, l3_size=40)
+            lstm.fit_model(epochs=50, batch_size=64, verbose=1)
 
             # graph for out-of-samplem forecast for 1 day ahead
             plot_df = pd.DataFrame()
@@ -254,28 +254,50 @@ def recommend():
         # create figure for plots
         fig = go.Figure()
 
-        try:
-            # predict the next 30 days
-            predictions = [symbol_info['currentPrice']]
-            predictions_dates = [date.today().strftime("%Y-%m-%d")]
-            X_for_pred = lstm.X_test[-1]
-            for x in range(1, 30):
-                new_pred = lstm.lstm.predict(X_for_pred.reshape(-1, n_steps, 1))
-                new_price = lstm.scaler.inverse_transform(new_pred)[0][0]
-                predictions.append(new_price)
-                predictions_dates.append((date.today()+BDay(x)).strftime("%Y-%m-%d"))
-                X_for_pred = np.vstack([X_for_pred, new_pred])
-                X_for_pred = X_for_pred[1:]
+        #try:
+        # predict the next 30 days
+        nr_days = 30
+        predictions = [] #[symbol_info['currentPrice']]
+        predictions_dates = [] #[0]
+        X_for_pred = lstm.X_test[-1]
+        for x in range(1, nr_days+1):
+            new_pred = lstm.lstm.predict(X_for_pred.reshape(-1, n_steps, 1))
+            new_price = lstm.scaler.inverse_transform(new_pred)[0][0]
+            predictions.append(new_price)
+            predictions_dates.append(x)
+            new_pred = new_pred.reshape(1, 1, 1)
+            X_for_pred = np.vstack([X_for_pred, new_pred.reshape(1,1)])
+            X_for_pred = X_for_pred[1:]
 
-            # graph for predicted 5 days ahead
-            fig = go.Figure(data=[go.Scatter(
-                x = predictions_dates,
-                y = predictions,
-                mode = 'lines',)
-            ])
+        # create df for plotting predictions
+        dates = [lstm.df_original.iloc[-lstm.y_test.shape[0]:][-nr_days:][:].reset_index()['Date']]
+        dates = pd.date_range(dates[0].head(1)[0], dates[0][::-1].head(1)[nr_days-1], freq=BDay()).strftime('%Y-%m-%d')[:nr_days]
+        dates = list(dates)
+        dates.extend(pd.bdate_range(datetime.datetime(int(dates[-1][:4]), int(dates[-1][5:7]), int(dates[-1][8:10])) + BDay(1), "2030-01-06")[:nr_days].strftime('%Y-%m-%d'))
 
-        except:
-            enough_data += 'Not enough data to train the model ... '
+        # create arrays for plots
+        true_value = lstm.scaler.inverse_transform(lstm.y_test).reshape(-1)[-nr_days:]
+        lstm_pred = lstm.test_predict.reshape(-1)[-nr_days:]
+        lstm_pred_future = np.array(predictions)
+        dates = np.array(dates)
+
+        plot_df = pd.DataFrame()
+        plot_df['True Value'] = true_value
+        plot_df['LSTM Value'] = lstm_pred
+        plot_df['LSTM Value Future'] = lstm_pred_future
+        plot_df['Dates'] = dates[:30]
+        plot_df['Dates Future'] = dates[30:]
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=plot_df['Dates'], y=plot_df['True Value'], name='True Value',
+                         line=dict(color='blue', width=2)))
+        fig.add_trace(go.Scatter(x=plot_df['Dates'], y=plot_df['LSTM Value'], name = 'OOS Prediction',
+                                 line=dict(color='orange', width=2, dash='dot')))
+        fig.add_trace(go.Scatter(x=plot_df['Dates Future'], y=plot_df['LSTM Value Future'], name = 'Predicted Future',
+                                 line=dict(color='red', width=2, dash='dot')))
+
+        #except:
+        #    enough_data += 'Not enough data to train the model ... '
 
         fig.update_layout(title_text=enough_data + 'LSTM Prediction for the Next 30 Days for ' + str(symbol))
 
