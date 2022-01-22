@@ -116,10 +116,11 @@ User can additional tick any number of tickboxes. If **Display S&P 500 Index Per
 These additional information can provide more clarity and give a more realistic view of how selected stock is performing. Is it performing well for its sector? How is it performing compared to the overall market? Of course this type of information is more relevant for larger companies as we are comparing it to the S&P 500 stocks. While this is something that could be improved for the app (i.e. show performance of other indices as well), it can still be useful for comparison purposes even when low or mid cap stock is selected.
 
 ### Forecast Prices
-*This selection will delay response by up to 2 minutes as it needs to train 5 LSTM models (1 for each forecast range up to 5 days).*
+*This selection will delay response by up to 1 minute as it needs to train an LSTM model.*
 
-If **Forecast the Next 5 Days** is ticked, the following information will be available:
-* Graph showing predications for the next 5 days based on LSTM model
+If **Forecast the Next 30 Days** is ticked, the following information will be available:
+* Graph showing actual data and out-of-sample predictions for 1-day ahead prices
+* Graph showing predictions for the next 30 days based on the model. Ideally we would train 1 model per forecasted day (i.e. 1 model for 1-day ahead, 1 model for 2-days ahead, ... , 1 model for 30-days ahead); however there is not enough data to properly train all these models and even if there were, it would take ~30min to train all the models which would ruin user experience in this case. Once can still choose to do so on his side if there is a particular stock that they are interested in
 * If not enough data is available, graph will display less data and inform the user for which days forecast was not possible
 
 ![Predictions](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/Predictions.png)
@@ -132,3 +133,20 @@ If **Show Recommendations** is ticked, the following information will be availab
 * Table showing actual fundamental values and predicted fundamental values based on Funk SVD decomposition
 
 ![Recommendations](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/Recommendations.png)
+
+# References
+## Building Flask App
+* https://www.youtube.com/watch?v=6plVs_ytIH8&t=90s&ab_channel=PythonSimplified
+* https://towardsdatascience.com/web-visualization-with-plotly-and-flask-3660abf9c946
+* https://www.youtube.com/watch?v=B97qWOUvlnU&ab_channel=CodeWithPrince
+* https://plotly.com/python/table-subplots/
+* https://stackoverflow.com/questions/50188840/plotly-create-table-with-rowname-from-pandas-dataframe
+* https://www.w3schools.com/howto/howto_css_custom_checkbox.asp
+* https://www.youtube.com/watch?v=_sgVt16Q4O4&t=131s&ab_channel=PrettyPrinted
+
+## Building LSTM Model
+* https://en.wikipedia.org/wiki/Long_short-term_memory
+* https://www.analyticsvidhya.com/blog/2021/05/stock-price-prediction-and-forecasting-using-stacked-lstm/
+* https://datascience.stackexchange.com/questions/24800/time-series-prediction-using-lstms-importance-of-making-time-series-stationary
+* https://www.simplilearn.com/tutorials/machine-learning-tutorial/stock-price-prediction-using-machine-learning
+* https://www.youtube.com/watch?v=H6du_pfuznE&ab_channel=KrishNaik
