@@ -73,17 +73,16 @@ Folder structure is as follows:
     * css: css formatting for the webpage
     * images: images for the webpage
   * template Folder: contains index.html file which is used to render the webpage for Flask app
-  * Jupyter Notebooks (there are 3 Jupyter notebooks in part of the repo):
-    * *contentBasedRecomm.ipynb*: shows step-by-step process how I trained Funk SVD recommendation and can also be used to try out whether different parameters work better
-    * *LSTM_optimize.ipynb*: imports and trains LSTM model for different parameters
-    * *createFundamentalsDfs.ipynb*: shows how to re-created data frames with fundamentals if needed. As mentioned above users can change what fundamentals they find relevant and what brackets they should have in **contentRecommRanges.txt** file
-
 
 Additionally app Folder contains the following files:
 * app.py: main python script for the Flask app
 * contentRecommRanges.txt: txt file that serves as input to contentBasedRecom.py
 * my_df & my_df_extra: outputs of function **createDf()** from **contentBasedRecom.py**. As fundamentals are only updated quarterly, I ran the process once and save the underlying data to be used for any stock
 * requirements.txt: package requirements to run the Flask app
+* Jupyter Notebooks (there are 3 Jupyter notebooks in part of the repo):
+  * *contentBasedRecomm.ipynb*: shows step-by-step process how I trained Funk SVD recommendation and can also be used to try out whether different parameters work better
+  * *LSTM_optimize.ipynb*: imports and trains LSTM model for different parameters
+  * *createFundamentalsDfs.ipynb*: shows how to re-created data frames with fundamentals if needed. As mentioned above users can change what fundamentals they find relevant and what brackets they should have in **contentRecommRanges.txt** file
 
 ## Running the App
 To run the app, open cmd / conda Navigator, navigate into the app Folder and run command "flask app". You should get the following message:
