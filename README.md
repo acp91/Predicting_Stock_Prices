@@ -108,7 +108,7 @@ All the data that is shown here is pulled using yfinance and yahoo_fin packages 
 Each of the tickboxes provides further information to the user on whether or not the stock is currently a buy, hold or sell as well as what might be other stocks of interest given the selected stock.
 
 ### Display S&P 500 Index Performance
-*This selection will the delay response by ~30 seconds as it needs to download data for the entire S&P 500 index.*
+*This selection will the delay response by ~15-30 seconds as it needs to download data for the entire S&P 500 index.*
 
 User can additional tick any number of tickboxes. If **Display S&P 500 Index Performance** is ticked, the following information will be available:
 * Performance of the stocks within the same Sector for S&P 500 Stocks
@@ -120,17 +120,17 @@ User can additional tick any number of tickboxes. If **Display S&P 500 Index Per
 These additional information can provide more clarity and give a more realistic view of how selected stock is performing. Is it performing well for its sector? How is it performing compared to the overall market? Of course this type of information is more relevant for larger companies as we are comparing it to the S&P 500 stocks. While this is something that could be improved for the app (i.e. show performance of other indices as well), it can still be useful for comparison purposes even when low or mid cap stock is selected.
 
 ### Forecast Prices
-*This selection will delay response by up to 1 minute as it needs to train an LSTM model.*
+*This selection will delay response by up to 1-1.5 minute as it needs to train an LSTM model.*
 
 If **Forecast the Next 30 Days** is ticked, the following information will be available:
 * Graph showing actual data and out-of-sample predictions for 1-day ahead prices
-* Graph showing predictions for the next 30 days based on the model. Ideally we would train 1 model per forecasted day (i.e. 1 model for 1-day ahead, 1 model for 2-days ahead, ... , 1 model for 30-days ahead); however there is not enough data to properly train all these models and even if there were, it would take ~30min to train all the models which would ruin user experience in this case. Once can still choose to do so on his side if there is a particular stock that they are interested in
+* Graph showing predictions for the next 30 days based on the model. Ideally we would train 1 model per forecasted day (i.e. 1 model for 1-day ahead, 1 model for 2-days ahead, ... , 1 model for 30-days ahead); however there is not enough data to properly train all these models and even if there was it would take at least 30min to train all the models which would ruin user experience in this case. Once can still choose to do so on their  side if there is a particular stock that they are interested in
 * If not enough data is available, graph will display less data and inform the user for which days forecast was not possible
 
 ![Predictions](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/Predictions.png)
 
 ### Show Recommendations
-*This selection will delay response by ~15 seconds as it perform various matrix multiplications and retrieve fundamentals for the selected stock.*
+*This selection will delay response by ~30-45 seconds as it perform various matrix multiplications and retrieve fundamentals for the selected stock.*
 
 If **Show Recommendations** is ticked, the following information will be available:
 * Table showing the top 20 most similar companies based on fundamentals
