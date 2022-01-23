@@ -367,7 +367,7 @@ def FunkSVD(fundamentals_mat, latent_features=14, learning_rate=0.0001, iters=10
                     error = f_value - np.dot(symbols_mat[symbol], features_mat[:, feature])
 
                     # Keep track of the total sum of squared errors for the matrix
-                    sse_accum =+ error
+                    sse_accum += np.abs(error)
                     
                     # update the values in each matrix in the direction of the gradient
                     updated_symbols_mat = symbols_mat[symbol] + learning_rate * 2 * error * features_mat[:, feature]
