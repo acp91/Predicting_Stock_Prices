@@ -4,15 +4,15 @@ Analyze historical performance and predict stock prices
 ## Introduction to the Project
 For the final project in Udacity Data Science Course I decided to recommend and predict stock prices based on user selection. I am primarily relying on two existing python packages, yfinance and yahoo_fin, that leverage yahoo finance APIs for retrieving stock prices and information. These APIs allow to query the most recent stock information on the market.
 
-The idea behing the project is simple: give some tools that could help user decide whether to buy, hold or sell a stock and to recommend similar stocks to the ones that he's already owning / lookin into. While there's a lot that can still be improved (I address this further towards the end), it's already an useful tool to get a general idea of how selected stock market is performing compared to the rest of the market.
+The idea behing the project is simple: give some tools that could help user decide whether to buy, hold or sell a stock and to recommend similar stocks to the ones that he's already owning / interested in. While there's a lot that can still be improved (I address some of it later on) it's already an useful tool to get a general idea of how selected stock market is performing compared to the rest of the market.
 
 The Flask app that I have created allows the user to input a ticker of choice (official financial ticker, e.g. GOOG for google, AAPL for Apple and so on). Based on the user selection the app will:
 * Plot historical prices
 * Show analysts' recommendations and return over recent period
 * Additionally allow the user to:
   * Display S&P 500 performance for the same sector and daily top 10/bottom 10 performing Stocks
-  * Predict the next 5 days (if enough data available) based on LSTM model
-  * Show most similar stocks / recommendations from the S&P 500 index based on similarity matrix where the input are stock fundamentals (price to book, ebidta margin etc.). It will also perform Funk SVD decomposition in case some of the fundamentals are missing)
+  * Predict the next 30 days (if enough data available) based on LSTM model
+  * Show most similar stocks / recommendations from the S&P 500 index based on similarity matrix where the input are stock fundamentals (price to book, ebidta margin etc.). It will also perform Funk SVD decomposition to cover cases where some of the fundamentals are missing)
 
 ## Data Analysis
 As part of the **Initial View** page (further explained below) the app provides some plots (time series plot and histogram) and general statistics about the selected stock price data, such as average, standard deviation, most recent returns and so on.
@@ -24,8 +24,8 @@ I am relying on official data from Yahoo and therefore didn't run into many data
 For recommending similar stocks to the user I've performed content based recommendation by using matrix multiplication and funk SVD for predicting missing fundamentals. All these processes are based on fundamentals of stocks.
 
 Top 20 most similar companies are selected in the following way:
-* It is based on S&P 500 data only. It could be easily extended to include other major indices (e.g. DOWJ, FTSE) as yahoo_fin packages covers other indices as well, but for the purpose of this app I used S&P 500 only
-* First I defined the relevant fundamentals in **contentRecommRanges.txt** file. A user can change this file (e.g. add new fundamentals, change ranges etc.). It is used to split fundamentals into different brackets which are then transformed into matrices of 1s and 0s depending on whether the value of a stock for a certain fundamental falls in a certain bracket or not. User can change these brackets and re-create a new matrix if desired. Example: **ebitdaMargins, 0, 1, 11** would mean create 11 brackets between 1 and 0 for **ebitdaMargins** fundamental
+* It is based on S&P 500 data only. It could be easily extended to include other major indices (e.g. DOWJ, FTSE) as yahoo_fin packages covers other indices as well (and would probably produce better results) but for the purpose of this app I used S&P 500 only
+* First I defined the relevant fundamentals in **contentRecommRanges.txt** file. A user can change this file (e.g. add new fundamentals, change ranges etc.). It is used to split fundamentals into different brackets which are then transformed into matrices of 1s and 0s depending on whether the value of a stock for a fundamental falls in a certain bracket or not. User can change these brackets and re-create a new matrix if desired. Example: **ebitdaMargins, 0, 1, 11** would mean create 11 brackets between 1 and 0 for **ebitdaMargins** fundamental
   * First input the name of the fundamental. To see all available fundamentals, run yfinance.Ticker('GOOG').info (where GOOG can be replaced with any ticker)
   * The next 3 values represent lower bound, upper bound and number of brackets. Any value below lower bound is assigned to the lowest bracket and any value above upper bound is assigned to the highest bracket
 * Take all stocks for S&P 500 index and retrieve all the relevant fundamentals' values for them (relevant in this case means it's part of **contentRecommRanges.txt** file)
@@ -43,17 +43,17 @@ I ran a few different scenarios to find funk SVD model that has the lowest error
 ![funk_SVD_optimize](https://github.com/acp91/Predicting_Stock_Prices/blob/main/images_git/funk_SVD_optimize.png)
 
 ### Prediction
-Out of various different models that can be used to predict time series data (e.g. simple linear regression, AR, ARIMA) I've decided to rather use a deep-learning based model called *Long-short-term-memory* or *LSTM* for short. The reason for it is that LSTM model is designed to learn what information / past prices are worth keeping for predicting future prices and what information is not relevant. As discussed [here](https://datascience.stackexchange.com/questions/12721/time-series-prediction-using-arima-vs-lstm#:~:text=LSTM%20works%20better%20if%20we,not%20require%20setting%20such%20parameters) LSTM is a better choice than e.g. alternative ARIMA time series models for when we are dealing with a large amount of data (which gives deep leaning model enough information to learn on).
+Out of various different models that can be used to predict time series data (e.g. simple linear regression, AR, ARIMA) I've decided to rather use a deep-learning based model called *Long-short-term-memory* or *LSTM* for short. The reason for it is that LSTM model is designed to learn what information / past prices are worth keeping for predicting future prices and what information is not relevant. As discussed [here](https://datascience.stackexchange.com/questions/12721/time-series-prediction-using-arima-vs-lstm#:~:text=LSTM%20works%20better%20if%20we,not%20require%20setting%20such%20parameters) LSTM is a better choice than e.g. alternative ARIMA time series models for when we are dealing with a large amount of data (which gives deep leaning model enough information to learn on). Most of the well known stock have 10+ years of history which should be enough to train the model.
 
 I've relied on some existing work as referenced in the *Reference* section in the end.
 
 I ran an LSTM model predicting 1-day ahead price. After trying out different options these are the parameters my model is using:
-* Latest 15 prices to learn. I did not use a longer sequence for learning as it would limit the number of stocks for which I could make all 5 predictions
-* Uses Adam optimizer. SGD did not converge in most of the examples that I run
+* Latest 80 prices to learn
+* Uses Adam optimizer (SGD approach would always flatten predictions too much therefore Adam seemed a better choice)
 * Validation sample size of 8%
 * Test sample size of 12%
 * Dropout rate of 5%
-* Uses 3 hidden layers of sizes 30
+* Uses 3 hidden layers of sizes 40
 * Learn rate of 0.1%
 
 I've used mean squared error for model selection as well as keeping in mind that complicated models that would take a long time to run would ruin some of the user experience. With the model I have specified above it takes around 1 minute to train and display the data (but it will depend on users GPU as the code is relying on Tensor Flow library). Mean squared error is a good estimator in this case as I am not so interested in the magnitude of the predictions, just that the direction / trend is right. If mean squared error is smaller, it means that the prediction, on average, was in the same direction as the actual price move (i.e. increase / decrease in the stock price). I ran the tests for an IBM stock as it has a long history of prices.
@@ -73,6 +73,7 @@ Folder structure is as follows:
     * css: css formatting for the webpage
     * images: images for the webpage
   * template Folder: contains index.html file which is used to render the webpage for Flask app
+* images_git Folder: folder with images for GitHub repository
 
 Additionally app Folder contains the following files:
 * app.py: main python script for the Flask app
