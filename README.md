@@ -73,6 +73,11 @@ Folder structure is as follows:
     * css: css formatting for the webpage
     * images: images for the webpage
   * template Folder: contains index.html file which is used to render the webpage for Flask app
+  * Jupyter Notebooks (there are 3 Jupyter notebooks in part of the repo):
+    * *contentBasedRecomm.ipynb*: shows step-by-step process how I trained Funk SVD recommendation and can also be used to try out whether different parameters work better
+    * *LSTM_optimize.ipynb*: imports and trains LSTM model for different parameters
+    * *createFundamentalsDfs.ipynb*: shows how to re-created data frames with fundamentals if needed. As mentioned above users can change what fundamentals they find relevant and what brackets they should have in **contentRecommRanges.txt** file
+
 
 Additionally app Folder contains the following files:
 * app.py: main python script for the Flask app
@@ -150,3 +155,4 @@ If **Show Recommendations** is ticked, the following information will be availab
 * https://datascience.stackexchange.com/questions/24800/time-series-prediction-using-lstms-importance-of-making-time-series-stationary
 * https://www.simplilearn.com/tutorials/machine-learning-tutorial/stock-price-prediction-using-machine-learning
 * https://www.youtube.com/watch?v=H6du_pfuznE&ab_channel=KrishNaik
+* https://medium.com/@canerkilinc/selecting-optimal-lstm-batch-size-63066d88b96b#:~:text=By%20experience%2C%20in%20most%20cases,based%20on%20the%20performance%20observation.

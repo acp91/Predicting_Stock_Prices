@@ -4,25 +4,27 @@ import os, sys
 
 pd.set_option('display.max_columns',100)
 
-class HiddenPrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
-
 def load_index_data():
     '''
+    
 
-    :param
-    :return: return 6 data frames in this order:
-        data_sp500, data_dow, data_ftse100, data_ftse250, data_nasdaq, data_nifty50
+    Returns
+    -------
+    data_sp500 : dataframe
+        Data for index S&P 500.
+    data_dow : dataframe
+        Data for index DOW JONES.
+    data_ftse100 : dataframe
+        Data for index FTSE 100.
+    data_ftse250 : dataframe
+        Data for index FTSE 250.
+    data_nasdaq : dataframe
+        Data for index NASDAQ.
 
-        data frame as standardize:
-            1. where Sector available, rename it everywhere to Sector
-            2. Symbol renamed everywhere to Symbol
+    data frame are standardize:
+        1. where Sector available, rename it everywhere to Sector
+        2. Symbol renamed everywhere to Symbol
+
     '''
 
     data_sp500, data_dow, data_ftse100, data_ftse250, data_nasdaq = 0, 0, 0, 0, 0

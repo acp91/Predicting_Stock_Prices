@@ -19,16 +19,39 @@ pd.set_option('display.max_rows',1000)
 
 # create dataframe with dummies for different levels of ratios
 def createNames(list_input):
+    '''
+    Creates a list of all possible fundamentals and their associated brackets
+
+    Parameters
+    ----------
+    list_input : text file of the format "contentRecommRanges.txt" in the main folder
+        List that defines relevant fundamentals and what brackets they should be split into
+
+    Returns
+    -------
+    names_list : list
+        List of all fundamentals and assocaited brackets. E.g. if input is PE_Ration, 0, 1, 2 it returns:
+            PE_Ratio_0, PE_Ratio_0.5, PE_Ratio 1
+
+    '''
+    # create empty list to store all fundamentals and possible brackets
     names_list = []
     
+    # read the text file
     list_input = list_input.split(',')
+    # get the name of the fundamental
     string = list_input[0]
+    # get the lower bound
     start = float(list_input[1])
+    # get the upper bound
     limit = float(list_input[2])
+    # get the number of steps
     steps = int(list_input[3])
     
+    # create brackets based on start, limit and steps
     ranges = np.linspace(start, limit, steps)
     
+    # concatenate  fundamental and all possible brackets
     for x in range(ranges.shape[0]):
         names_list.append(string + '|' + str(round(ranges[x],2)))
         
@@ -36,8 +59,23 @@ def createNames(list_input):
 
 # create a list of relevant columns
 def colsForMatrix(list_input):
+    '''
+    Create final list of columns for the matrix
+
+    Parameters
+    ----------
+    list_input : list
+        List created by createNames function.
+
+    Returns
+    -------
+    cols_for_matrix : list
+        All columns needed for the matrix.
+
+    '''
     cols_for_matrix = ['Symbol']
     
+    # extend the list
     for i, string in enumerate(list_input):
         cols_for_matrix.extend(createNames(string))
     
@@ -45,6 +83,24 @@ def colsForMatrix(list_input):
 
 # find the right column based on ratio value
 def returnColumn(df, ratio, ratio_value):
+    '''
+    Function that finds in what column a given fundamental value falls into
+
+    Parameters
+    ----------
+    df : dataframe
+        DESCRIPTION.
+    ratio : TYPE
+        DESCRIPTION.
+    ratio_value : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    matched_col : TYPE
+        DESCRIPTION.
+
+    '''
     
     if ratio_value != None:
         # get list of matching columns
@@ -54,6 +110,7 @@ def returnColumn(df, ratio, ratio_value):
         # check if greater than max:
         matched_col = None
     
+        # if value above max -> set to max bracket
         if ratio_value >= float(matching[-1][len(ratio)+1:]):
             matched_col = matching[-1]
         else:
@@ -67,21 +124,48 @@ def returnColumn(df, ratio, ratio_value):
     
 # create a df to be used for finding similar movies
 def createDf(attr_list, data_index, sector=['Energy']):
+    '''
+    Creates dataframes for all stocks in an index (limited to sector if specified)
+
+    Parameters
+    ----------
+    attr_list : text file
+        Data in contentRecommRanges.txt file.
+    data_index : dataframe
+        yahoo finance index e.g. use yahoo_fin.stock_info.tickers_sp500(True)
+    sector : list of strings, optional
+        List of sectors of interest (index will be filtered just for the subset). The default is ['Energy'].
+
+    Returns
+    -------
+    df : dataframe
+        Dataframe of 1s and 0s depending on whether stocks fundamental falls in a certain range.
+    df_extra_info : dataframe
+        Dataframe of all stocks in an index and their fundamentals.
+
+    '''
+    
+    # create a new dataframe that will hold 1s and 0s
     df = pd.DataFrame()
+    # create a new dataframe that will hold fundamentals for each stock
+    df_extra_info = pd.DataFrame()
+    
+    # assing columns based on colsForMatrix function
     df[colsForMatrix(attr_list)] = 0
     
     input_list = []
     
+    # create list of fundamentals that are of interest
     for i, x in enumerate(attr_list):
         input_list.append(attr_list[i].split(',')[0])
-
-    df_extra_info = pd.DataFrame()
     
+    # create a list of all stocks from the index
     if sector != '':
         enumerate_list = enumerate(data_index[data_index['Sector'].isin(sector)].Symbol.tolist())
     else:
         enumerate_list = enumerate(data_index.Symbol.tolist())
     
+    # loop through all the stocks
     for i, symbol in enumerate_list:
         # get info for the ticker of interest
         pref_stock_info = yf.Ticker(symbol).info
@@ -93,14 +177,17 @@ def createDf(attr_list, data_index, sector=['Energy']):
             if key in input_list:
                 pref_stock_dict[key] = value
         
+        # find the column that fits stocks' fundamental value and populate it as 1 in df
         for key, value in pref_stock_dict.items():
             matched_col = returnColumn(df, key, value)
             if matched_col != None:
                 df.loc[i, matched_col] = 1
             df.loc[i, 'Symbol'] = symbol 
-            
+        
+        # add stocks' fundamentals to df_extra_info
         df_extra_info = df_extra_info.append(pd.DataFrame.from_dict(pref_stock_dict, orient='index').transpose())
             
+    # fill nan values as 0 so we can use df matrix for multiplication (for content based recommendation)        
     df = df.fillna(0)
     df_extra_info.reset_index(inplace=True, drop=True)
     
@@ -110,6 +197,7 @@ def createDf(attr_list, data_index, sector=['Energy']):
     df_extra_info = pd.merge(pd.DataFrame(df.Symbol),df_extra_info , left_index=True, right_index=True)
     df_extra_info = pd.merge(df_extra_info, data_index, left_on='Symbol', right_on='Symbol')
     
+    # flip columns so Symbol is first
     cols = df_extra_info.columns.tolist()
     cols = cols[-1:] + cols[:-1]
     df_extra_info = df_extra_info[cols]
@@ -117,6 +205,26 @@ def createDf(attr_list, data_index, sector=['Energy']):
     return df, df_extra_info
 
 def getRecommendations(df, df_extra, ticker, attr_list):
+    '''
+    Get ordered recommendations for stocks (based on fundamentals)
+
+    Parameters
+    ----------
+    df : dataframe
+        df from createDf.
+    df_extra : dataframe
+        df_extra_info from createDf.
+    ticker : string
+        Official financial ticker, check yahoo finance if not sure.
+    attr_list : text file
+        Data in contentRecommRanges.txt file.
+
+    Returns
+    -------
+    new_df : dataframe
+        dataframe of recommendations ordered from most similar to least.
+
+    '''
     
     # check if ticker exists in current df
     if not ticker in df.Symbol.tolist():
@@ -132,22 +240,26 @@ def getRecommendations(df, df_extra, ticker, attr_list):
         
         input_list = []
            
+        # create list of fundamentals
         for i, x in enumerate(attr_list):
             input_list.append(attr_list[i].split(',')[0])        
         
+        # create dictionary of stocks fundamentals
         for key in input_list:
             pref_stock_dict[key] = np.nan
             
         for key, value in pref_stock_info.items():
             if key in input_list:
                 pref_stock_dict[key] = value
-         
+        
+        # find out in which column stock's fundamental fits and populate it as 1
         for key, value in pref_stock_dict.items():
             matched_col = returnColumn(df, key, value)
             if matched_col != None:
                 df_ticker.loc[i, matched_col] = 1
             df_ticker.loc[i, 'Symbol'] = ticker    
            
+        # clean-up dataframes so they can be used in matrix multiplication
         df_ticker = df_ticker.fillna(0)
         df = df.append(df_ticker)
         df_extra = df_extra.append(pd.DataFrame.from_dict(pref_stock_dict, orient='index').transpose())
@@ -155,6 +267,7 @@ def getRecommendations(df, df_extra, ticker, attr_list):
         df_extra.loc[df_extra.shape[0]-1, 'Symbol'] = ticker
         df_extra.loc[df_extra.shape[0]-1, 'Security'] = pref_stock_info['longName']       
         
+        # matrix multiplication for content based recommendation
         mat_prod = np.dot(np.array(df_ticker.iloc[:, 1:]), np.array(df.iloc[:, 1:].transpose()))
         mat_prod = mat_prod.reshape(-1)
 
@@ -181,9 +294,11 @@ def getRecommendations(df, df_extra, ticker, attr_list):
     new_df = df_extra.reindex(index = sorted_indices.tolist())
     new_df['Similarity'] = similarities
     
+    # re-oreder colums
     cols = new_df.columns.tolist()
     cols = cols[:2] + cols[-1:] + cols[2:-1]
     new_df = new_df[cols]    
+    # sort by similarity from most similar to least
     new_df.sort_values(by=['Similarity'], ascending=False, inplace=True)
     
     # drop row with the actual symbol
@@ -194,16 +309,25 @@ def getRecommendations(df, df_extra, ticker, attr_list):
 def FunkSVD(fundamentals_mat, latent_features=14, learning_rate=0.0001, iters=100):
     '''
     This function performs matrix factorization using a basic form of FunkSVD with no regularization
-    
-    INPUT:
-    ratings_mat - (numpy array) a matrix with users as rows, movies as columns, and ratings as values
-    latent_features - (int) the number of latent features used
-    learning_rate - (float) the learning rate 
-    iters - (int) the number of iterations
-    
-    OUTPUT:
-    user_mat - (numpy array) a user by latent feature matrix
-    movie_mat - (numpy array) a latent feature by movie matrix
+
+    Parameters
+    ----------
+    fundamentals_mat : dataframe
+        A matrix with symbols as rows, fundamentals as columns and fundamentals as values.
+    latent_features : int, optional
+        Number of fundamentals. The default is 14.
+    learning_rate : int, optional
+        Learning rate for Funk SVD model. The default is 0.0001.
+    iters : int, optional
+        Number of steps to trian Funk SVD model. The default is 100.
+
+    Returns
+    -------
+    symbols_mat : dataframe
+        Left matrix from Funk SVD decomp.
+    features_mat : dataframe
+        Right matrix from Funk SVD decomp.
+
     '''
     
     # Set up useful values to be used through the rest of the function
