@@ -273,7 +273,7 @@ def create_data(data, step=1):
 
     '''
     X, Y = [], []
-    for i in range(data.shape[0]-step-1):
+    for i in range(data.shape[0]-step):
         x_data = data[i:(i + step)]
         y_data = data[i + step]
         X.append(x_data)

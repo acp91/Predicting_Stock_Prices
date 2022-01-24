@@ -56,10 +56,9 @@ def recommend():
     # get history data
     end_date = (datetime.date.today()).strftime("%Y-%m-%d")
     yesterday = (datetime.date.today()+BDay(-2)).strftime("%Y-%m-%d")
-    year_start = pd.date_range(date(date.today().year, 1, 1).strftime('%Y-%m-%d'), date(date.today().year, 12, 1).strftime('%Y-%m-%d'), freq='BMS')[0].strftime('%Y-%m-%d')
-    previous_year_end = pd.date_range(date(date.today().year-1, 12, 24).strftime('%Y-%m-%d'), date(date.today().year, 12, 31).strftime('%Y-%m-%d'), freq='BM')[0].strftime('%Y-%m-%d')
+    year_start = pd.date_range(str(datetime.date.today().year) + '-01-01', '2030-01-1', freq='BMS').strftime('%Y-%m-%d')[0]
+    previous_year_end = pd.date_range(str(datetime.date.today().year-1) + '-12-01', '2030-01-1', freq='BM').strftime('%Y-%m-%d')[0]
     min_date = min(start_date, year_start)
-    first_BD = pd.date_range(date(date.today().year, 1, 1).strftime('%Y-%m-%d'), date(date.today().year, 12, 1).strftime('%Y-%m-%d'), freq='BMS')[0].strftime('%Y-%m-%d')
     symbol_history = pd.DataFrame(yf.Ticker(symbol).history(start=min_date))
 
     # get checkbox info
@@ -151,7 +150,7 @@ def recommend():
         #data_sp500[data_sp500['Sector']=='Information Technology']='Technology'
 
         # calcualte returns for sp_500 symbol_history
-        sp500_prices = yf.download(yfsi.tickers_sp500(), start=yesterday)['Close'][:2]
+        sp500_prices = yf.download(yfsi.tickers_sp500(), start=yesterday)['Close'][-2:]
         sp500_dates = (sp500_prices.index).strftime('%d-%m-%y').tolist()
         sp500_prices.index = (sp500_prices.index).strftime('%d-%m-%y')
         sp500_returns = pd.DataFrame((sp500_prices.iloc[-1] - sp500_prices.iloc[0]) / sp500_prices.iloc[0])
@@ -259,7 +258,12 @@ def recommend():
         nr_days = 30
         predictions = [] #[symbol_info['currentPrice']]
         predictions_dates = [] #[0]
+
+        # create a new array for prediction
         X_for_pred = lstm.X_test[-1]
+        X_for_pred = np.vstack([X_for_pred, lstm.y_test[-1]])
+        X_for_pred = X_for_pred[1:]
+
         for x in range(1, nr_days+1):
             new_pred = lstm.lstm.predict(X_for_pred.reshape(-1, n_steps, 1))
             new_price = lstm.scaler.inverse_transform(new_pred)[0][0]
@@ -271,22 +275,26 @@ def recommend():
 
         # create df for plotting predictions
         dates = [lstm.df_original.iloc[-lstm.y_test.shape[0]:][-nr_days:][:].reset_index()['Date']]
-        dates = pd.date_range(dates[0].head(1)[0], dates[0][::-1].head(1)[nr_days-1], freq=BDay()).strftime('%Y-%m-%d')[:nr_days]
-        dates = list(dates)
-        dates.extend(pd.bdate_range(datetime.datetime(int(dates[-1][:4]), int(dates[-1][5:7]), int(dates[-1][8:10])) + BDay(1), "2030-01-06")[:nr_days].strftime('%Y-%m-%d'))
+        dates_new = []
+        for date in dates[0]:
+            dates_new.append(date.strftime('%Y-%m-%d'))
+        dates_new.extend(pd.bdate_range(datetime.datetime(int(dates_new[-1][:4]), int(dates_new[-1][5:7]), int(dates_new[-1][8:10])) + BDay(1), "2030-01-06")[:nr_days].strftime('%Y-%m-%d'))
 
         # create arrays for plots
         true_value = lstm.scaler.inverse_transform(lstm.y_test).reshape(-1)[-nr_days:]
         lstm_pred = lstm.test_predict.reshape(-1)[-nr_days:]
         lstm_pred_future = np.array(predictions)
-        dates = np.array(dates)
+        dates_new = np.array(dates_new)
+
+        print(dates_new)
+        print(len(dates_new))
 
         plot_df = pd.DataFrame()
         plot_df['True Value'] = true_value
         plot_df['LSTM Value'] = lstm_pred
         plot_df['LSTM Value Future'] = lstm_pred_future
-        plot_df['Dates'] = dates[:30]
-        plot_df['Dates Future'] = dates[30:]
+        plot_df['Dates'] = dates_new[:30]
+        plot_df['Dates Future'] = dates_new[30:]
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=plot_df['Dates'], y=plot_df['True Value'], name='True Value',
