@@ -221,8 +221,9 @@ def recommend():
         lstm = LstmModel()
         lstm.get_input_data(symbol)
 
-        # create figure for plots
-        fig = go.Figure()
+        # create default figure for plots
+        fig1 = go.Figure()
+        fig2 = go.Figure()
 
         # check if there's enough data tgo train the model
         enough_data = ''
@@ -238,78 +239,67 @@ def recommend():
             plot_df['LSTM Value'] = lstm.test_predict.reshape(-1)
             plot_df.set_index([lstm.df_original.iloc[-lstm.y_test.shape[0]:][:].reset_index()['Date']], inplace=True)
 
-            fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['True Value'], name='True Value',
+            fig1 = go.Figure()
+            fig1.add_trace(go.Scatter(x=plot_df.index, y=plot_df['True Value'], name='True Value',
                              line=dict(color='blue', width=2)))
-            fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['LSTM Value'], name = 'Predicted',
+            fig2.add_trace(go.Scatter(x=plot_df.index, y=plot_df['LSTM Value'], name = 'Predicted',
                                      line=dict(color='orange', width=2, dash='dot')))
+
+            # predict the next 30 days
+            nr_days = 30
+            predictions = [] #[symbol_info['currentPrice']]
+            predictions_dates = [] #[0]
+
+            # create a new array for prediction
+            X_for_pred = lstm.X_test[-1]
+            X_for_pred = np.vstack([X_for_pred, lstm.y_test[-1]])
+            X_for_pred = X_for_pred[1:]
+
+            for x in range(1, nr_days+1):
+                new_pred = lstm.lstm.predict(X_for_pred.reshape(-1, n_steps, 1))
+                new_price = lstm.scaler.inverse_transform(new_pred)[0][0]
+                predictions.append(new_price)
+                predictions_dates.append(x)
+                new_pred = new_pred.reshape(1, 1, 1)
+                X_for_pred = np.vstack([X_for_pred, new_pred.reshape(1,1)])
+                X_for_pred = X_for_pred[1:]
+
+            # create df for plotting predictions
+            dates = [lstm.df_original.iloc[-lstm.y_test.shape[0]:][-nr_days:][:].reset_index()['Date']]
+            dates_new = []
+            for date in dates[0]:
+                dates_new.append(date.strftime('%Y-%m-%d'))
+            dates_new.extend(pd.bdate_range(datetime.datetime(int(dates_new[-1][:4]), int(dates_new[-1][5:7]), int(dates_new[-1][8:10])) + BDay(1), "2030-01-06")[:nr_days].strftime('%Y-%m-%d'))
+
+            # create arrays for plots
+            true_value = lstm.scaler.inverse_transform(lstm.y_test).reshape(-1)[-nr_days:]
+            lstm_pred = lstm.test_predict.reshape(-1)[-nr_days:]
+            lstm_pred_future = np.array(predictions)
+            dates_new = np.array(dates_new)
+
+            plot_df = pd.DataFrame()
+            plot_df['True Value'] = true_value
+            plot_df['LSTM Value'] = lstm_pred
+            plot_df['LSTM Value Future'] = lstm_pred_future
+            plot_df['Dates'] = dates_new[:30]
+            plot_df['Dates Future'] = dates_new[30:]
+
+            fig2 = go.Figure()
+            fig2.add_trace(go.Scatter(x=plot_df['Dates'], y=plot_df['True Value'], name='True Value',
+                             line=dict(color='blue', width=2)))
+            fig2.add_trace(go.Scatter(x=plot_df['Dates'], y=plot_df['LSTM Value'], name = 'OOS Prediction',
+                                     line=dict(color='orange', width=2, dash='dot')))
+            fig2.add_trace(go.Scatter(x=plot_df['Dates Future'], y=plot_df['LSTM Value Future'], name = 'Predicted Future',
+                                     line=dict(color='red', width=2, dash='dot')))
 
         except:
             enough_data += 'Not enough data to train the model ... '
 
-        fig.update_layout(title_text= enough_data + 'LSTM Out-of-sample Prediction for ' + str(symbol))
+        fig1.update_layout(title_text= enough_data + 'LSTM Out-of-sample Prediction for ' + str(symbol))
+        graphOOSJSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
 
-        graphOOSJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
-        # create figure for plots
-        fig = go.Figure()
-
-        #try:
-        # predict the next 30 days
-        nr_days = 30
-        predictions = [] #[symbol_info['currentPrice']]
-        predictions_dates = [] #[0]
-
-        # create a new array for prediction
-        X_for_pred = lstm.X_test[-1]
-        X_for_pred = np.vstack([X_for_pred, lstm.y_test[-1]])
-        X_for_pred = X_for_pred[1:]
-
-        for x in range(1, nr_days+1):
-            new_pred = lstm.lstm.predict(X_for_pred.reshape(-1, n_steps, 1))
-            new_price = lstm.scaler.inverse_transform(new_pred)[0][0]
-            predictions.append(new_price)
-            predictions_dates.append(x)
-            new_pred = new_pred.reshape(1, 1, 1)
-            X_for_pred = np.vstack([X_for_pred, new_pred.reshape(1,1)])
-            X_for_pred = X_for_pred[1:]
-
-        # create df for plotting predictions
-        dates = [lstm.df_original.iloc[-lstm.y_test.shape[0]:][-nr_days:][:].reset_index()['Date']]
-        dates_new = []
-        for date in dates[0]:
-            dates_new.append(date.strftime('%Y-%m-%d'))
-        dates_new.extend(pd.bdate_range(datetime.datetime(int(dates_new[-1][:4]), int(dates_new[-1][5:7]), int(dates_new[-1][8:10])) + BDay(1), "2030-01-06")[:nr_days].strftime('%Y-%m-%d'))
-
-        # create arrays for plots
-        true_value = lstm.scaler.inverse_transform(lstm.y_test).reshape(-1)[-nr_days:]
-        lstm_pred = lstm.test_predict.reshape(-1)[-nr_days:]
-        lstm_pred_future = np.array(predictions)
-        dates_new = np.array(dates_new)
-
-        print(dates_new)
-        print(len(dates_new))
-
-        plot_df = pd.DataFrame()
-        plot_df['True Value'] = true_value
-        plot_df['LSTM Value'] = lstm_pred
-        plot_df['LSTM Value Future'] = lstm_pred_future
-        plot_df['Dates'] = dates_new[:30]
-        plot_df['Dates Future'] = dates_new[30:]
-
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=plot_df['Dates'], y=plot_df['True Value'], name='True Value',
-                         line=dict(color='blue', width=2)))
-        fig.add_trace(go.Scatter(x=plot_df['Dates'], y=plot_df['LSTM Value'], name = 'OOS Prediction',
-                                 line=dict(color='orange', width=2, dash='dot')))
-        fig.add_trace(go.Scatter(x=plot_df['Dates Future'], y=plot_df['LSTM Value Future'], name = 'Predicted Future',
-                                 line=dict(color='red', width=2, dash='dot')))
-
-        #except:
-        #    enough_data += 'Not enough data to train the model ... '
-
-        fig.update_layout(title_text=enough_data + 'LSTM Prediction for the Next 30 Days for ' + str(symbol))
-
-        graphForecastJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+        fig2.update_layout(title_text=enough_data + 'LSTM Prediction for the Next 30 Days for ' + str(symbol))
+        graphForecastJSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
 
     # check if recommendations where ticked
     if '3' in check_box:
